@@ -111,6 +111,9 @@ void fmt_parse (const char *fmt) {
                         s = t+1;
                         switch (*s)
                         {
+                        case 'g':
+                                fmt_add(KC_FMT_GEE, NULL, 0);
+                                break;
                         case 'o':
                                 fmt_add(KC_FMT_OFFSET, NULL, 0);
                                 break;
@@ -213,6 +216,22 @@ static void fmt_msg_output_str (FILE *fp,
 
                 switch (conf.fmt[i].type)
                 {
+                case KC_FMT_GEE:
+                        r = fwrite(&rkmessage->partition, sizeof(uint32_t), 1, fp);
+                        r = fwrite(&rkmessage->offset, sizeof(uint64_t), 1, fp);
+
+
+                        // <partition 4><offset 8><len 4><payload ...?
+                        belen = (uint32_t)(rkmessage->payload ?
+                                             (ssize_t)rkmessage->len : -1);
+                        r = fwrite(&belen, sizeof(uint32_t), 1, fp);
+                        if (rkmessage->len)
+                            r = fwrite(rkmessage->payload,
+                                       rkmessage->len, 1, fp);
+                        else if (conf.flags & CONF_F_NULL)
+                            r = fwrite(conf.null_str,
+                                       conf.null_str_len, 1, fp);
+                        break;
                 case KC_FMT_OFFSET:
                         r = fprintf(fp, "%"PRId64, rkmessage->offset);
                         break;
